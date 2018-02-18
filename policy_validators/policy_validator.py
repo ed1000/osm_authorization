@@ -1,4 +1,4 @@
-import re, json
+import re, json, pprint
 
 from settings import Config
 
@@ -19,24 +19,73 @@ class ActionGrant:
 
         return data
 
+def validate_policy(policy_file):
+    top_keys = ['actions', 'operations', 'action_to_operations', 'action_policies']
+    
+    if policy_file is None:
+        raise Exception('ERROR IN POLICY FILE: File missing')
+    
+    # Verifying if there aren't parameters missing
+    count = 0
+    for key in policy_file.keys():
+        if key in top_keys:
+            count += 1
+    
+    if count != len(top_keys):
+        raise Exception('ERROR IN POLICY FILE: Missing parameters')
+
+    # Verifying if there aren't duplicated actions
+    actions = []
+    for action in policy_file['actions']:
+        if action in actions:
+            raise Exception('ERROR IN POLICY FILE: Duplicated actions')
+        actions.append(action)
+
+    # Verifying if there aren't duplicated operations
+    operations = []
+    for operation in policy_file['operations']:
+        if operation in operations:
+            raise Exception('ERROR IN POLICY FILE: Duplicated operations')
+        operations.append(operation)
+    
+    # Verifying mappings between actions and operations
+    actions = []
+    for action_to_operations in policy_file['action_to_operations']:
+        if action_to_operations['action_name'] not in policy_file['actions']:
+            raise Exception('ERROR IN POLICY FILE: Action is not present in the actions list')
+        elif action_to_operations['action_name'] in actions:
+            raise Exception('ERROR IN POLICY FILE: Duplicated action in action_to_operations mapping')
+        
+        actions.append(action_to_operations['action_name'])
+
+        operations = []
+        for operation in action_to_operations['operations']:
+            if operation not in policy_file['operations']:
+                raise Exception('ERROR IN POLICY FILE: Operation is not present in the operations list')
+            elif operation in operations:
+                raise Exception('ERROR IN POLICY FILE: Duplicated operation in action_to_operations mapping')
+            
+            operations.append(operation)
+    
+    print('Action to operation mappings valid')
+
+    return True
+
+
 class PolicyValidator:
     COMPILED_REGEX = re.compile(r'([ a-zA-Z0-9_]+)_[0-9]+')
-    POLICIES = json.load(open(Config.AUTHORIZATION_POLICY_FILE))
+    POLICIES = validate_policy(json.load(open(Config.AUTHORIZATION_POLICY_FILE)))
     EXPIRATION_TIME = Config.REDIS_EXPIRATION_TIME
     USER_MARKER = Config.AUTHORIZATION_USER_MARKER
     ADMIN_MARKER = Config.AUTHORIZATION_ADMIN_MARKER
-    SERVICE_MARKER = Config.AUTHORIZATION_SERVICE_MARKER
+    SERVICE_MARKER = Config.AUTHORIZATION_SERVICE_MARKER    
 
     def __init__(self):
-        self.is_valid = self.validate_policy()
+        if PolicyValidator.POLICIES is None:
+            raise Exception('POLICY FILE NOT VALID')
 
-        if self.is_valid:
-            self.redis_db = StrictRedis(host=settings.REDIS_URL, port=settings.REDIS_PORT)
-
-    def validate_policy(self):
-        # TODO: validate loaded file
-        return True
-
+        #self.redis_db = StrictRedis(host=settings.REDIS_URL, port=settings.REDIS_PORT)
+"""
     def verify_issuer_permissions(self, call_chain, issuer, is_in_project=False):
         markers = str.split(call_chain[0], '|')
 
@@ -65,6 +114,7 @@ class PolicyValidator:
         return False
 
     def generate_action_id(self, action):
+        return None
         action_id = hashlib.sha512(str.encode(action + str(time.time())))
 
         while self.redis_db.exists(action_id):
@@ -73,6 +123,7 @@ class PolicyValidator:
         return action_id
 
     def verify_authorization(self, action, project, issuer, component, action_id=None):
+        return None
         if not self.is_valid:
             raise PolicyFileError("Authorization policy file has an error...")
 
@@ -122,3 +173,4 @@ class PolicyValidator:
 
     def verify_authorization(self, action, project, client_service, server_service):
         return ActionGrant(action_id=0, audit_id=0, action=action, project=project)
+"""

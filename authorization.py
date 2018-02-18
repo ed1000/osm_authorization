@@ -10,9 +10,13 @@ app = Flask(__name__)
 
 
 @app.route('/auth', methods=['GET'])
-@authentication_required
+#@authentication_required
 def authorization_get():
     """Method to validate authorization for action"""
+    
+    PolicyValidator()
+
+    """
     action_id = request.args.get('action_id')
     audit_id = request.args.get('audit_id')
     action = request.args.get('action')
@@ -31,14 +35,15 @@ def authorization_get():
     subj_token = request.headers.get('X-Subject-Token')
     service = EntityRepository().gather_information(token=serv_token)
     subject = EntityRepository().gather_information(token=subj_token)
-
+    """
     
 
 
-@app.route('/auth', methods=['POST'])
-@authentication_required
-def authorization_post():
+#@app.route('/auth', methods=['POST'])
+#@authentication_required
+#def authorization_post():
     """Method to get authorization for action"""
+"""
     req_data = request.get_json()
 
     action = req_data.get('action')
@@ -54,9 +59,11 @@ def authorization_post():
     service = EntityRepository().gather_information(token=serv_token)
     subject = EntityRepository().gather_information(token=subj_token)
 
-    result = PolicyValidator().create_authorization(action=action, project=project, subject=subject, service=service)
+    result = PolicyValidator().create_authorization(action=action, 
+    project=project, subject=subject, service=service)
 
     if not result:
         abort(401, description='action not authorized.')
 
     return make_response(jsonify(result.to_public_dict()), 200)
+"""
