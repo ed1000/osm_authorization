@@ -25,7 +25,6 @@ def validate_policy(policy_file):
     if policy_file is None:
         raise Exception('ERROR IN POLICY FILE: File missing')
     
-    # Verifying if there aren't parameters missing
     count = 0
     for key in policy_file.keys():
         if key in top_keys:
@@ -34,21 +33,18 @@ def validate_policy(policy_file):
     if count != len(top_keys):
         raise Exception('ERROR IN POLICY FILE: Missing parameters')
 
-    # Verifying if there aren't duplicated actions
     actions = []
     for action in policy_file['actions']:
         if action in actions:
             raise Exception('ERROR IN POLICY FILE: Duplicated actions')
         actions.append(action)
 
-    # Verifying if there aren't duplicated operations
     operations = []
     for operation in policy_file['operations']:
         if operation in operations:
             raise Exception('ERROR IN POLICY FILE: Duplicated operations')
         operations.append(operation)
     
-    # Verifying mappings between actions and operations
     actions = []
     for action_to_operations in policy_file['action_to_operations']:
         if action_to_operations['action_name'] not in policy_file['actions']:
@@ -67,9 +63,42 @@ def validate_policy(policy_file):
             
             operations.append(operation)
     
-    print('Action to operation mappings valid')
+    actions = []
+    for action_policy in policy_file['action_policies']:
+        if action_policy['action_name'] not in policy_file['actions']:
+            raise Exception('ERROR IN POLICY FILE: Action is not present in the actions list')
+        elif action_policy['action_name'] in actions:
+            raise Exception('ERROR IN POLICY FILE: Duplicated policy for action')
+        
+        actions.append(action_policy['action_name'])
 
-    return True
+        if 'policies' not in action_policy.keys():
+            raise Exception('ERROR IN POLICY FILE: No policy defined')
+        
+        policies = []
+        for policy in action_policy['policies']:
+            groups_present = 'groups' in policy.keys()
+            rip_present = 'roles_in_projects' in policy.keys()
+
+            if not groups_present and not rip_present:
+                raise Exception('ERROR IN POLICY FILE: Missing groups or roles in projects in action policies')
+            elif policy in policies:
+                raise Exception('ERROR IN POLICY FILE: Duplicated policy definition')
+            
+            # TODO: Validate if rule is well specified
+
+            policies.append(policy)
+        
+        if 'action_timeout' not in action_policy.keys():
+            raise Exception('ERROR IN POLICY FILE: Missing action_timeout')
+        elif not isinstance(action_policy['action_timeout'], int):
+            raise Exception('ERROR IN POLICY FILE: Action timeout must be integer')
+        elif action_policy['action_timeout'] < -1:
+            raise Exception('ERROR IN POLICY FILE: Action timeout cannot be less than infinite (-1)')
+        elif action_policy['action_timeout'] == 0:
+            raise Exception('ERROR IN POLICY FILE: Action timeout cannot be 0 seconds')
+
+    return policy_file
 
 
 class PolicyValidator:
