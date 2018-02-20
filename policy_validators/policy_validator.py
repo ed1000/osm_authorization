@@ -18,18 +18,6 @@ class ActionGrant:
         data['project'] = self.project
 
         return data
-    
-    def to_redis_dict(self):
-        data = dict()
-
-        data['action_id'] = self.action_id
-        data['action'] = self.action
-        data['project'] = self.project
-        data['subject'] = self.subject
-        data['service'] = self.service
-        data['operations'] = self.operations
-
-        return data
 
 def validate_policy(policy_file):
     top_keys = ['actions', 'operations', 'action_to_operations', 'action_policies']
@@ -89,15 +77,19 @@ def validate_policy(policy_file):
         
         policies = []
         for policy in action_policy['policies']:
-            groups_present = 'groups' in policy.keys()
-            rip_present = 'roles_in_projects' in policy.keys()
+            groups_present = 'group' in policy.keys()
+            rip_present = 'role_in_project' in policy.keys()
 
             if not groups_present and not rip_present:
                 raise Exception('ERROR IN POLICY FILE: Missing groups or roles in projects in action policies')
             elif policy in policies:
                 raise Exception('ERROR IN POLICY FILE: Duplicated policy definition')
             
-            # TODO: Validate if rule is well specified
+            if rip_present is True:
+                if 'role' not in policy['role_in_project'].keys():
+                    raise Exception('ERROR IN POLICY FILE: Mising role in role in project policy')
+                elif 'project' not in policy['role_in_project'].keys():
+                    raise Exception('ERROR IN POLICY FILE: Missing project in role in project policy')
 
             policies.append(policy)
         
@@ -118,7 +110,8 @@ class PolicyValidator:
     EXPIRATION_TIME = Config.REDIS_EXPIRATION_TIME
     USER_MARKER = Config.AUTHORIZATION_USER_MARKER
     ADMIN_MARKER = Config.AUTHORIZATION_ADMIN_MARKER
-    SERVICE_MARKER = Config.AUTHORIZATION_SERVICE_MARKER    
+    SERVICE_MARKER = Config.AUTHORIZATION_SERVICE_MARKER
+    SERVICE_RP = dict(role=Config.SERVICE_ROLE, project=Config.SERVICE_PROJECT)
 
     def __init__(self):
         if PolicyValidator.POLICIES is None:
@@ -135,58 +128,116 @@ class PolicyValidator:
         return action_id
 
     def create_authorization(self, action, project, subject, service):
+        if PolicyValidator.POLICIES is None:
+            raise Exception('POLICY FILE NOT VALID')
+
         try:
+            # Checking if action in action list
             if action not in PolicyValidator.POLICIES['actions']:
                 return None
 
-            # Check if service is service
-
-            action_policy = filter(
+            # Checking if service is a service
+            if PolicyValidator.SERVICE_RP not in service.roles_in_projects:
+                return None
+            
+            # Getting action policy
+            action_policy = list(filter(
                 lambda x: x['action_name'] == action, 
-                PolicyValidator.POLICIES['action_policies'])
+                PolicyValidator.POLICIES['action_policies']))
             
+            # If there is an action, there is a need to authorize the subject making the request
+            found_policy = False
             if len(action_policy) != 0:
-                pass
-                # Verify if subject/service match policy
+                for policy in action_policy[0]['policies']:
+                    has_group = policy.get('group') is not None
+                    valid_group = policy.get('group') in subject.groups
+                    has_rip = policy.get('role_in_project') is not None
+                    valid_rip = policy.get('role_in_project') in subject.roles_in_projects
+
+                    if has_group is True and has_rip is True:
+                        found_policy = valid_group and valid_rip
+                    elif has_group is True:
+                        found_policy = valid_group
+                    elif has_rip:
+                        found_policy = valid_rip
             
+                    if found_policy is True:
+                        break
+            # If no policy was defined, all the users are allowed
+            else:
+                found_policy = True
+            
+            # Only false if the user doesn't have the required permissions
+            if found_policy is False:
+                return None
+            
+            # Generating an action id (also needed for auditing purposes)
             action_id = self.generate_action_id(action)
 
-            action_grant = ActionGrant(action_id=action_id, action=action, project=project).to_public_dict()
+            # Creating action to be stored in Redis
+            action_grant = ActionGrant(action_id=action_id, action=action, project=project, subject=subject, service=service)
+            self.redis_db.set(action_id, json.dumps(action_grant))
 
-            self.redis_db.hmset(action_id, action_grant)
+            # Checking for action timeout values and setting if necessary
+            if len(action_policy) != 0:
+                timeout = action_policy[0].get('action_timeout')
 
-            return action_grant
+                if timeout > 0:
+                    self.redis_db.expire(action_id, timeout)
+
+            return action_grant.to_public_dict()
         except Exception as ex:
             print(ex)
 
             return None
 
     def verify_authorization(self, action_id, action, operation, project, client_service, server_service):
+        if PolicyValidator.POLICIES is None:
+            raise Exception('POLICY FILE NOT VALID')
+
         try:
+            # Verify if action is in actions list
             if action not in PolicyValidator.POLICIES['actions']:
                 return None
             
+            # Verify if operation is in operations list
             if operation not in PolicyValidator.POLICIES['operations']:
                 return None
             
+            # Verify if operation is in action to operations mapping
             action_to_operations = filter(
                 lambda x: x['action_name'] == action, 
                 PolicyValidator.POLICIES['action_to_operations'])
 
             if operation not in action_to_operations:
                 return None
-            
-            action_policy = filter(
-                lambda x: x['action_name'] == action, 
-                PolicyValidator.POLICIES['action_policies'])
 
-            if len(action_policy) != 0:
+            # Verify if action was approved
+            if self.redis_db.exists(action_id) is False:
+                return None
 
-                pass
+            # Getting information about the action grant
+            action_grant = json.loads(self.redis_db.get(action_id).decode('utf-8'))
 
-            action_grant = ActionGrant(action_id=action_id, action=action, project=project).to_public_dict()
+            # Checking if information is accurate
+            if action_grant.action != action:
+                return None
+            elif action_grant.action_id != action_id:
+                return None
 
-            return action_grant
+            # Appendifn the requested operation to the action grant
+            action_grant.operations.append(operation)
+
+            # Checking for expiration time on the action
+            ttl = self.redis_db.ttl(action_id)
+
+            self.redis_db.set(action_id, action_grant)
+
+            # If the action has a timeout associated with it, putting the remaining time back in redis
+            if ttl > 0:
+                self.redis_db.expire(action_id, ttl)
+
+            return action_grant.to_public_dict()
         except Exception as ex:
             print(ex)
 
