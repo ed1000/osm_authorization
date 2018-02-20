@@ -107,10 +107,6 @@ def validate_policy(policy_file):
 
 class PolicyValidator:
     POLICIES = validate_policy(json.load(open(Config.AUTHORIZATION_POLICY_FILE)))
-    EXPIRATION_TIME = Config.REDIS_EXPIRATION_TIME
-    USER_MARKER = Config.AUTHORIZATION_USER_MARKER
-    ADMIN_MARKER = Config.AUTHORIZATION_ADMIN_MARKER
-    SERVICE_MARKER = Config.AUTHORIZATION_SERVICE_MARKER
     SERVICE_RP = dict(role=Config.SERVICE_ROLE, project=Config.SERVICE_PROJECT)
 
     def __init__(self):
