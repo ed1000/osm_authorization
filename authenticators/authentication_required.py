@@ -4,8 +4,20 @@ from flask import g, request, redirect, url_for, make_response, abort
 from settings import Config
 
 def get_authorization_token():
-    Config.AUTHORIZATION_TOKEN = ''
+    status_code = 0
+    
+    while status_code != 200:
+        data = dict(
+            method='password', 
+            username=Config.AUTHENTICATION_USERNAME, 
+            password=Config.AUTHENTICATION_PASSWORD)
 
+        req = requests.post('http://' + Config.AUTHENTICATION_IP + '/auth', data=data)
+
+        status_code = req.status_code
+
+        if status_code == 200: 
+            Config.AUTHORIZATION_TOKEN = req.headers.get('X-Subject-Token')
 
 def verify_token(token):
     is_valid_token = False
@@ -34,7 +46,7 @@ def verify_token(token):
     data = dict(username=None, is_authenticated=False, is_service=False)
 
     if req.status_code == 200:
-        req_json = req.json()[0]
+        req_json = req.json()
         data['username'] = req_json.get('username')
         data['is_authenticated'] = True
         data['is_service'] = 'service' in req_json.get('projects')

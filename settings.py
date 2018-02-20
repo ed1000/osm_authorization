@@ -2,6 +2,9 @@ class Config:
     AUTHENTICATION_IP = ''
     ACCOUNTING_IP = ''
 
+    AUTHENTICATION_USERNAME = ''
+    AUTHENTICATION_PASSWORD = ''
+
     AUTHORIZATION_POLICY_FILE = ''
     REDIS_URL = 'localhost'
     REDIS_PORT = 6379
