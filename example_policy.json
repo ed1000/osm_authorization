@@ -67,22 +67,43 @@
             "action_name": "action_1",
             "policies": [
                 {
-                    "group": "",
-                    "role_in_project": {
-                        "role": "",
-                        "project": ""
-                    }
-                },
-                {
-                    "group": ""
-                },
+                    "group": "users"
+                }],
+            "action_timeout": 60
+        },
+        {
+            "action_name": "action_2",
+            "policies": [
                 {
                     "role_in_project": {
-                        "role": "",
-                        "project": ""
+                        "role": "user",
+                        "project": "5ginfire"
                     }
-                }
-            ],
+                }],
+            "action_timeout": 60
+        },
+        {
+            "action_name": "action_3",
+            "policies": [
+                {
+                    "role_in_project": {
+                        "role": "user",
+                        "project": "5ginfire"
+                    },
+                    "group": "users"
+                }],
+            "action_timeout": 60
+        },
+        {
+            "action_name": "action_4",
+            "policies": [
+                {
+                    "role_in_project": {
+                        "role": "user",
+                        "project": "5ginfire"
+                    },
+                    "group": "admin"
+                }],
             "action_timeout": 60
         }
     ]

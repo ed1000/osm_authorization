@@ -25,7 +25,7 @@ class EntityRepository:
         self.user_domain_name = Config.KEYSTONE_USER_DOMAIN_NAME
         self.project_domain_name = Config.KEYSTONE_PROJECT_DOMAIN_NAME
     
-    def gather_information(self, user):
+    def gather_information(self, username):
         def map_to_role_assignment_dict(role):
             role_assign = dict()
 
@@ -37,7 +37,7 @@ class EntityRepository:
         def map_to_group_name(group):
             return group.name
 
-        if user is None:
+        if username is None:
             return None
         
         try:
@@ -50,14 +50,12 @@ class EntityRepository:
             sess = session.Session(auth=auth)
             keystone = client.Client(session=sess)
 
-            user = keystone.users.get(user)
-
-            pprint.pprint(user)
+            user = list(filter(lambda x: x.name == username, keystone.users.list()))[0]
 
             role_assignments = list(map(
                 map_to_role_assignment_dict, 
-                keystone.role_assignments.list(user=user.get('id'), include_names=True)))
-            groups = list(map(map_to_group_name, keystone.groups.list(user=user.get('id'))))
+                keystone.role_assignments.list(user=user.id, include_names=True)))
+            groups = list(map(map_to_group_name, keystone.groups.list(user=user.id)))
 
             return EntityInformation(
                 username=user,

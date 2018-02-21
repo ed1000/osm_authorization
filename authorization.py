@@ -30,8 +30,12 @@ def authorization_get():
 
     serv_info = verify_token(request.headers.get('X-Service-Token'))
     subj_info = verify_token(request.headers.get('X-Subject-Token'))
-    server_service = EntityRepository().gather_information(user=serv_info['username'])
-    client_service = EntityRepository().gather_information(user=subj_info['username'])
+
+    if serv_info is None or subj_info is None:
+        abort(500, description='could not authenticate authorization service')
+
+    server_service = EntityRepository().gather_information(username=serv_info['username'])
+    client_service = EntityRepository().gather_information(username=subj_info['username'])
 
     action_grant = PolicyValidator().verify_authorization(
         action_id=action_id,
@@ -62,8 +66,12 @@ def authorization_post():
 
     serv_info = verify_token(request.headers.get('X-Service-Token'))
     subj_info = verify_token(request.headers.get('X-Subject-Token'))
-    service = EntityRepository().gather_information(user=serv_info['username'])
-    subject = EntityRepository().gather_information(user=subj_info['username'])
+
+    if serv_info is None or subj_info is None:
+        abort(500, description='could not authenticate authorization service')
+
+    service = EntityRepository().gather_information(username=serv_info['username'])
+    subject = EntityRepository().gather_information(username=subj_info['username'])
 
     action_grant = PolicyValidator().create_authorization(
         action=action, 
