@@ -1,0 +1,89 @@
+{
+    "actions": [
+        "action_1",
+        "action_2",
+        "action_3",
+        "action_4",
+        "action_5",
+        "action_6"
+    ],
+    "operations": [
+        "operation_1",
+        "operation_2",
+        "operation_3",
+        "operation_4",
+        "operation_5",
+        "operation_6",
+        "operation_7",
+        "operation_8",
+        "operation_9",
+        "operation_10",
+        "operation_11",
+        "operation_12"
+    ],
+    "action_to_operations": [
+        {
+            "action_name": "action_1",
+            "operations": [
+                "operation_1",
+                "operation_10",
+                "operation_12"
+            ]
+        },
+        {
+            "action_name": "action_3",
+            "operations": [
+                "operation_3",
+                "operation_4",
+                "operation_5"
+            ]
+        },
+        {
+            "action_name": "action_4",
+            "operations": [
+                "operation_8",
+                "operation_9"
+            ]
+        },
+        {
+            "action_name": "action_5",
+            "operations": [
+                "operation_1",
+                "operation_3",
+                "operation_12",
+                "operation_5",
+                "operation_4"
+            ]
+        },
+        {
+            "action_name": "action_6",
+            "operations": [
+                "operation_3"
+            ]
+        }
+    ],
+    "action_policies": [
+        {
+            "action_name": "action_1",
+            "policies": [
+                {
+                    "group": "",
+                    "role_in_project": {
+                        "role": "",
+                        "project": ""
+                    }
+                },
+                {
+                    "groups": ""
+                },
+                {
+                    "roles_in_projects": {
+                        "role": "",
+                        "project": ""
+                    }
+                }
+            ],
+            "action_timeout": 60
+        }
+    ]
+}
