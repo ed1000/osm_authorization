@@ -74,10 +74,10 @@
                     }
                 },
                 {
-                    "groups": ""
+                    "group": ""
                 },
                 {
-                    "roles_in_projects": {
+                    "role_in_project": {
                         "role": "",
                         "project": ""
                     }
