@@ -116,10 +116,10 @@ class PolicyValidator:
         self.redis_db = redis.StrictRedis(host=Config.REDIS_URL, port=Config.REDIS_PORT)
 
     def generate_action_id(self, action):
-        action_id = hashlib.sha512(str.encode(action + str(time.time())))
+        action_id = hashlib.sha512(str.encode(action + str(time.time()))).hexdigest()
 
         while self.redis_db.exists(action_id):
-            action_id = hashlib.sha512(str.encode(action + str(time.time())))
+            action_id = hashlib.sha512(str.encode(action + str(time.time()))).hexdigest()
 
         return action_id
 
