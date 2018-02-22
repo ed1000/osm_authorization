@@ -12,7 +12,7 @@ def get_authorization_token():
 
         req = requests.post('http://' + Config.AUTHENTICATION_IP + '/auth', json=data)
 
-        if req.status_code == 200: 
+        if req.status_code == 201: 
             Config.AUTHORIZATION_TOKEN = req.headers.get('X-Subject-Token')
     except Exception as ex:
         print(ex)
