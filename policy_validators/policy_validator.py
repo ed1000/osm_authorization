@@ -1,4 +1,4 @@
-import re, json, pprint, redis, hashlib, time
+import re, json, redis, hashlib, time
 from settings import Config
 
 class ActionGrant:
@@ -218,11 +218,11 @@ class PolicyValidator:
                 return None
             
             # Verify if operation is in action to operations mapping
-            action_to_operations = filter(
+            action_to_operations = list(filter(
                 lambda x: x['action_name'] == action, 
-                PolicyValidator.POLICIES['action_to_operations'])
+                PolicyValidator.POLICIES['action_to_operations']))[0]
 
-            if operation not in action_to_operations:
+            if operation not in action_to_operations['operations']:
                 print('operation is not action to operations mapping')
                 return None
 
@@ -235,15 +235,16 @@ class PolicyValidator:
             action_grant = json.loads(self.redis_db.get(action_id).decode('utf-8'))
 
             # Checking if information is accurate
-            if action_grant.action != action:
+            if action_grant.get('action') != action:
                 print('action does not match stored action')
                 return None
-            elif action_grant.action_id != action_id:
+            elif action_grant.get('action_id') != action_id:
                 print('action_id does not match stored action id')
                 return None
 
             # Appending the requested operation to the action grant
-            action_grant.operations.append(operation)
+            operations = action_grant.get('operations').append(operation)
+            action_grant['operations'] = operations
 
             # Checking for expiration time on the action
             ttl = self.redis_db.ttl(action_id)
