@@ -209,10 +209,12 @@ class PolicyValidator:
         try:
             # Verify if action is in actions list
             if action not in PolicyValidator.POLICIES['actions']:
+                print('action is not in action list')
                 return None
             
             # Verify if operation is in operations list
             if operation not in PolicyValidator.POLICIES['operations']:
+                print('operation is not in operation list')
                 return None
             
             # Verify if operation is in action to operations mapping
@@ -221,10 +223,12 @@ class PolicyValidator:
                 PolicyValidator.POLICIES['action_to_operations'])
 
             if operation not in action_to_operations:
+                print('operation is not action to operations mapping')
                 return None
 
             # Verify if action was approved
             if self.redis_db.exists(action_id) is False:
+                print('action_id is not valid')
                 return None
 
             # Getting information about the action grant
@@ -232,11 +236,13 @@ class PolicyValidator:
 
             # Checking if information is accurate
             if action_grant.action != action:
+                print('action does not match stored action')
                 return None
             elif action_grant.action_id != action_id:
+                print('action_id does not match stored action id')
                 return None
 
-            # Appendifn the requested operation to the action grant
+            # Appending the requested operation to the action grant
             action_grant.operations.append(operation)
 
             # Checking for expiration time on the action
@@ -248,7 +254,11 @@ class PolicyValidator:
             if ttl > 0:
                 self.redis_db.expire(action_id, ttl)
 
-            return action_grant.to_public_dict()
+            action_grant.pop('subject', None)
+            action_grant.pop('service', None)
+            action_grant.pop('operations', None)
+
+            return action_grant
         except Exception as ex:
             print(ex)
 
