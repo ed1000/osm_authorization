@@ -19,6 +19,18 @@ class ActionGrant:
 
         return data
 
+    def to_redis_dict(self):
+        data = dict()
+
+        data['action_id'] = self.action_id
+        data['action'] = self.action
+        data['project'] = self.project
+        data['subject'] = self.subject.to_dict()
+        data['service'] = self.service.to_dict()
+        data['operations'] = self.operations
+
+        return data
+
 def validate_policy(policy_file):
     top_keys = ['actions', 'operations', 'action_to_operations', 'action_policies']
     
@@ -130,12 +142,14 @@ class PolicyValidator:
         try:
             # Checking if action in action list
             if action not in PolicyValidator.POLICIES['actions']:
+                print('action not present in action list')
                 return None
 
             # Checking if service is a service
             if PolicyValidator.SERVICE_RP not in service.roles_in_projects:
+                print('service is not a service')
                 return None
-            
+
             # Getting action policy
             action_policy = list(filter(
                 lambda x: x['action_name'] == action, 
@@ -165,14 +179,15 @@ class PolicyValidator:
             
             # Only false if the user doesn't have the required permissions
             if found_policy is False:
+                print('user does not have the right permissions')
                 return None
-            
+           
             # Generating an action id (also needed for auditing purposes)
             action_id = self.generate_action_id(action)
 
             # Creating action to be stored in Redis
             action_grant = ActionGrant(action_id=action_id, action=action, project=project, subject=subject, service=service)
-            self.redis_db.set(action_id, json.dumps(action_grant))
+            self.redis_db.set(action_id, json.dumps(action_grant.to_redis_dict()))
 
             # Checking for action timeout values and setting if necessary
             if len(action_policy) != 0:

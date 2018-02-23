@@ -13,6 +13,14 @@ class EntityInformation:
         self.roles_in_projects = roles_in_projects
         self.groups = groups
 
+    def to_dict(self):
+        data = dict()
+
+        data['username'] = self.username
+        data['roles_in_projects'] = self.roles_in_projects
+        data['groups'] = self.groups
+
+        return data
 
 class EntityRepository:
     def __init__(self):
@@ -58,7 +66,7 @@ class EntityRepository:
             groups = list(map(map_to_group_name, keystone.groups.list(user=user.id)))
 
             return EntityInformation(
-                username=user,
+                username=user.name,
                 roles_in_projects=role_assignments,
                 groups=groups
             )
