@@ -2,10 +2,11 @@ import re, json, redis, hashlib, time
 from settings import Config
 
 class ActionGrant:
-    def __init__(self, action_id, action, project, subject, service, operations=[]):
+    def __init__(self, action_id, action, project, ns_id, subject, service, operations=[]):
         self.action_id = action_id
         self.action = action
         self.project = project
+        self.ns_id = ns_id
         self.subject = subject
         self.service = service
         self.operations = operations
@@ -16,6 +17,7 @@ class ActionGrant:
         data['action_id'] = self.action_id
         data['action'] = self.action
         data['project'] = self.project
+        data['ns_id'] = self.ns_id
 
         return data
 
@@ -25,6 +27,7 @@ class ActionGrant:
         data['action_id'] = self.action_id
         data['action'] = self.action
         data['project'] = self.project
+        data['ns_id'] = self.ns_id
         data['subject'] = self.subject.to_dict()
         data['service'] = self.service.to_dict()
         data['operations'] = self.operations
@@ -135,7 +138,7 @@ class PolicyValidator:
 
         return action_id
 
-    def create_authorization(self, action, project, subject, service):
+    def create_authorization(self, action, project, ns_id, subject, service):
         if PolicyValidator.POLICIES is None:
             raise Exception('POLICY FILE NOT VALID')
 
@@ -186,7 +189,7 @@ class PolicyValidator:
             action_id = self.generate_action_id(action)
 
             # Creating action to be stored in Redis
-            action_grant = ActionGrant(action_id=action_id, action=action, project=project, subject=subject, service=service)
+            action_grant = ActionGrant(action_id=action_id, action=action, project=project, ns_id=ns_id, subject=subject, service=service)
             self.redis_db.set(action_id, json.dumps(action_grant.to_redis_dict()))
 
             # Checking for action timeout values and setting if necessary
@@ -202,7 +205,7 @@ class PolicyValidator:
 
             return None
 
-    def verify_authorization(self, action_id, action, operation, project, client_service, server_service):
+    def verify_authorization(self, action_id, action, operation, project, ns_id, client_service, server_service):
         if PolicyValidator.POLICIES is None:
             raise Exception('POLICY FILE NOT VALID')
 
@@ -240,6 +243,9 @@ class PolicyValidator:
                 return None
             elif action_grant.get('action_id') != action_id:
                 print('action_id does not match stored action id')
+                return None
+            elif action_grant.get('ns_id') != ns_id:
+                print('ns id does not match stored ns id')
                 return None
 
             # Appending the requested operation to the action grant

@@ -18,6 +18,7 @@ def authorization_get():
     action = request.args.get('action')
     operation = request.args.get('operation')
     project = request.args.get('project')
+    ns_id = request.args.get('ns_id')
 
     if action_id is None:
         abort(400, description='action_id must be specified.')
@@ -42,6 +43,7 @@ def authorization_get():
         action=action,
         operation=operation,
         project=project,
+        ns_id=ns_id,
         client_service=client_service,
         server_service=server_service)
 
@@ -58,6 +60,7 @@ def authorization_post():
 
     action = req_data.get('action')
     project = req_data.get('project')
+    ns_id = req_data.get('ns_id')
 
     if action is None:
         abort(400, description='action must be specified')
@@ -75,7 +78,8 @@ def authorization_post():
 
     action_grant = PolicyValidator().create_authorization(
         action=action, 
-        project=project, 
+        project=project,
+        ns_id=ns_id, 
         subject=subject, 
         service=service
     )
