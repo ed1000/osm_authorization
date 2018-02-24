@@ -1,0 +1,147 @@
+openapi: 3.0.0
+info:
+  description: Authorization based in Openstack Keystone
+  version: 1.0.0
+  title: OSM Keystone Authorization
+  contact:
+    email: eduardosousa@av.it.pt
+  license:
+    name: GNU General Public License v3.0
+    url: https://www.gnu.org/licenses/gpl-3.0-standalone.html
+paths:
+  /auth:
+    get:
+      summary: Validate action and validate operation
+      description: This endpoint is used to check if an action and operation is valid.
+      parameters: 
+        - in: header
+          name: X-Service-Token
+          description: Token that belongs to the service trying to validate the action and operation
+          schema:
+            type: string
+          required: true
+        - in: header
+          name: X-Subject-Token
+          description: Token of the service requesting the action and operation
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: action_id
+          description: Identifier of the action being performed (identifier is unique)
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: action
+          description: Name of the action being performed
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: operation
+          description: Operation to be performed
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: project
+          description: Project to which the operation is being performed
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: ns_id
+          description: Network Service Identifier on which the action will be performed
+          schema:
+            type: string
+          required: false
+      responses:
+        200:
+          description: Action and operation is valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionStatus'
+        400:
+          description: |
+            action_id must be specified |
+            action must be specified |
+            operation must be specified |
+            project must be specified
+        401:
+          description: action/operation not authorized
+        500:
+          description: could not authenticate authorization service
+    post:
+      summary: Ask for permission to start executing the action
+      description: This endpoint is used to ask for permission to start executing the action.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionRequest'
+      parameters: 
+        - in: header
+          name: X-Service-Token
+          description: Token that belongs to the service trying to start the action
+          schema:
+            type: string
+          required: true
+        - in: header
+          name: X-Subject-Token
+          description: Token of the service or subject requesting for the start of the action
+          schema:
+            type: string
+          required: true
+      responses:
+        200:
+          description: Permission to start action granted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionStatus'
+        400:
+          description: |
+            action must be specified |
+            project must be specified
+        401:
+          description: action not authorized
+        500:
+          description: could not authenticate authorization service
+components:
+  schemas:
+    ActionRequest:
+      type: object
+      properties:
+        action:
+          type: string
+          description: action for which permission is being requested
+        project:
+          type: string
+          description: project where the action will be performed
+        ns_id:
+          type: string
+          description: network service identifier belonging to where the action will be performed
+      required:
+        - action
+        - project
+    ActionStatus:
+      type: object
+      properties:
+        action_id:
+          type: string
+          description: action identifier signaling the granting of permission
+        action:
+          type: string
+          description: action being executed
+        project:
+          type: string
+          description: project where the action is being executed
+        ns_id:
+          type: string
+          description: network service identifier belonging to where the action is being performed
+      required:
+        - action_id
+        - action
+        - project
